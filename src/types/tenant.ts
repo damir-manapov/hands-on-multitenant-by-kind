@@ -27,4 +27,3 @@ export enum InstanceStatus {
   Stopped = 'stopped',
   Error = 'error',
 }
-

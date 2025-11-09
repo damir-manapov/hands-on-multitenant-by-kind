@@ -19,7 +19,7 @@ async function main(): Promise<void> {
 
     // Wait a bit for the instance to start
     console.log('Waiting for instance to be ready...');
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     // Check instance status
     const instanceStatus = await tenantService.getResearchInstance('acme', 'instance-1');
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
     console.log('Listing all research instances for tenant "acme"...');
     const instances = await tenantService.listResearchInstances('acme');
     console.log(`📋 Found ${instances.length} instance(s):`);
-    instances.forEach(inst => {
+    instances.forEach((inst) => {
       console.log(`  - ${inst.id}: ${inst.status}`);
     });
 
@@ -38,7 +38,6 @@ async function main(): Promise<void> {
     console.log('  kubectl get namespaces');
     console.log('  kubectl get deployments -n research-tenant-acme');
     console.log('  kubectl get services -n research-tenant-acme');
-
   } catch (error: unknown) {
     console.error('❌ Error:', error);
     process.exit(1);
@@ -46,4 +45,3 @@ async function main(): Promise<void> {
 }
 
 main().catch(console.error);
-

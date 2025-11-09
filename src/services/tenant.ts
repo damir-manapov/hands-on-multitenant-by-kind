@@ -12,7 +12,7 @@ export class TenantService {
 
   async createTenant(id: string, name: string): Promise<Tenant> {
     const namespace = `research-tenant-${id}`;
-    
+
     // Create namespace in Kubernetes
     await this.kubernetesService.createNamespace(id);
 
@@ -26,20 +26,20 @@ export class TenantService {
 
     this.tenants.set(id, tenant);
     console.log(`Tenant created: ${id} (${name})`);
-    
+
     return tenant;
   }
 
-  async getTenant(id: string): Promise<Tenant | null> {
-    return this.tenants.get(id) || null;
+  getTenant(id: string): Tenant | null {
+    return this.tenants.get(id) ?? null;
   }
 
-  async listTenants(): Promise<Tenant[]> {
+  listTenants(): Tenant[] {
     return Array.from(this.tenants.values());
   }
 
   async createResearchInstance(tenantId: string, instanceId: string): Promise<ResearchInstance> {
-    const tenant = await this.getTenant(tenantId);
+    const tenant = this.getTenant(tenantId);
     if (!tenant) {
       throw new Error(`Tenant not found: ${tenantId}`);
     }
@@ -62,9 +62,12 @@ export class TenantService {
     return instance;
   }
 
-  async getResearchInstance(tenantId: string, instanceId: string): Promise<ResearchInstance | null> {
+  async getResearchInstance(
+    tenantId: string,
+    instanceId: string,
+  ): Promise<ResearchInstance | null> {
     const status = await this.kubernetesService.getResearchInstanceStatus(tenantId, instanceId);
-    
+
     return {
       id: instanceId,
       tenantId,
@@ -83,4 +86,3 @@ export class TenantService {
     await this.kubernetesService.deleteResearchInstance(tenantId, instanceId);
   }
 }
-

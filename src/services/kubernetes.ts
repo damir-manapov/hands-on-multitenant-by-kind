@@ -9,11 +9,7 @@ interface KubernetesError extends Error {
 }
 
 function isKubernetesError(error: unknown): error is KubernetesError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    ('body' in error || 'statusCode' in error)
-  );
+  return typeof error === 'object' && error !== null && ('body' in error || 'statusCode' in error);
 }
 
 export class KubernetesService {
@@ -29,7 +25,7 @@ export class KubernetesService {
   }
 
   async createNamespace(tenantId: string): Promise<void> {
-    const namespace = {
+    const namespace: k8s.V1Namespace = {
       metadata: {
         name: `research-tenant-${tenantId}`,
         labels: {
@@ -39,7 +35,7 @@ export class KubernetesService {
     };
 
     try {
-      await this.coreApi.createNamespace(namespace);
+      await this.coreApi.createNamespace({ body: namespace });
       console.log(`Namespace created: research-tenant-${tenantId}`);
     } catch (error: unknown) {
       if (isKubernetesError(error) && error.body?.reason === 'AlreadyExists') {
@@ -137,10 +133,10 @@ export class KubernetesService {
     };
 
     try {
-      await this.k8sApi.createNamespacedDeployment(namespace, deployment);
+      await this.k8sApi.createNamespacedDeployment({ namespace, body: deployment });
       console.log(`Deployment created: research-instance-${instanceId} in ${namespace}`);
-      
-      await this.coreApi.createNamespacedService(namespace, service);
+
+      await this.coreApi.createNamespacedService({ namespace, body: service });
       console.log(`Service created: research-instance-${instanceId} in ${namespace}`);
     } catch (error: unknown) {
       if (isKubernetesError(error) && error.body?.reason === 'AlreadyExists') {
@@ -151,20 +147,17 @@ export class KubernetesService {
     }
   }
 
-  async getResearchInstanceStatus(
-    tenantId: string,
-    instanceId: string
-  ): Promise<InstanceStatus> {
+  async getResearchInstanceStatus(tenantId: string, instanceId: string): Promise<InstanceStatus> {
     const namespace = `research-tenant-${tenantId}`;
 
     try {
-      const deployment = await this.k8sApi.readNamespacedDeployment(
-        `research-instance-${instanceId}`,
-        namespace
-      );
+      const deployment = await this.k8sApi.readNamespacedDeployment({
+        name: `research-instance-${instanceId}`,
+        namespace,
+      });
 
-      const replicas = deployment.body.spec?.replicas || 0;
-      const readyReplicas = deployment.body.status?.readyReplicas || 0;
+      const replicas: number = deployment.spec?.replicas ?? 0;
+      const readyReplicas: number = deployment.status?.readyReplicas ?? 0;
 
       if (readyReplicas === replicas && replicas > 0) {
         return InstanceStatus.Running;
@@ -185,16 +178,16 @@ export class KubernetesService {
     const namespace = `research-tenant-${tenantId}`;
 
     try {
-      await this.k8sApi.deleteNamespacedDeployment(
-        `research-instance-${instanceId}`,
-        namespace
-      );
+      await this.k8sApi.deleteNamespacedDeployment({
+        name: `research-instance-${instanceId}`,
+        namespace,
+      });
       console.log(`Deployment deleted: research-instance-${instanceId}`);
 
-      await this.coreApi.deleteNamespacedService(
-        `research-instance-${instanceId}`,
-        namespace
-      );
+      await this.coreApi.deleteNamespacedService({
+        name: `research-instance-${instanceId}`,
+        namespace,
+      });
       console.log(`Service deleted: research-instance-${instanceId}`);
     } catch (error: unknown) {
       if (isKubernetesError(error) && error.statusCode === 404) {
@@ -209,21 +202,24 @@ export class KubernetesService {
     const namespace = `research-tenant-${tenantId}`;
 
     try {
-      const response = await this.k8sApi.listNamespacedDeployment(namespace);
+      const response = await this.k8sApi.listNamespacedDeployment({ namespace });
       const instances: ResearchInstance[] = [];
 
-      for (const deployment of response.body.items) {
-        const instanceId = deployment.metadata?.labels?.instance || 'unknown';
+      for (const deployment of response.items) {
+        const instanceId: string = deployment.metadata?.labels?.['instance'] ?? 'unknown';
         const status = await this.getResearchInstanceStatus(tenantId, instanceId);
+
+        const name: string = deployment.metadata?.name ?? instanceId;
+        const createdAt: Date = deployment.metadata?.creationTimestamp
+          ? new Date(deployment.metadata.creationTimestamp)
+          : new Date();
 
         instances.push({
           id: instanceId,
           tenantId,
-          name: deployment.metadata?.name || instanceId,
+          name,
           status,
-          createdAt: deployment.metadata?.creationTimestamp
-            ? new Date(deployment.metadata.creationTimestamp)
-            : new Date(),
+          createdAt,
           namespace,
         });
       }
@@ -237,4 +233,3 @@ export class KubernetesService {
     }
   }
 }
-
