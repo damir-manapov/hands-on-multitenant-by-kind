@@ -448,14 +448,12 @@ This script checks the health of your dependencies:
 │   │   ├── tenants.service.ts     # NestJS service for tenants
 │   │   └── tenants.module.ts      # NestJS module for tenants
 │   ├── dto/
-│   │   ├── create-tenant.dto.ts      # DTO for creating tenants
-│   │   └── create-instance.dto.ts    # DTO for creating instances
+│   │   └── create-tenant.dto.ts      # DTO for creating tenants
 │   ├── app.module.ts          # Main NestJS application module
 │   ├── main.ts                # NestJS application entry point
 │   └── index.ts               # Demo/example script
 ├── k8s/
-│   ├── namespace.yaml         # Example namespace definitions
-│   └── instance.yaml.template  # Template for instances
+│   └── api-deployment.yaml    # Kubernetes manifests for the main API
 ├── kind-config.yaml           # kind cluster configuration
 ├── tsconfig.json              # Strict TypeScript configuration
 ├── .eslintrc.json             # Strict ESLint configuration
