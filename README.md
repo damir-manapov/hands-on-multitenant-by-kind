@@ -4,7 +4,7 @@ A multitenant application for managing research instances using Kubernetes (kind
 
 ## Prerequisites
 
-Before setting up the project, ensure you have the following tools installed on your system. **Do not install these tools in the project root directory** - install them system-wide or in appropriate system directories.
+Before setting up the project, ensure you have the following tools installed on your system.
 
 ### Required Tools
 
