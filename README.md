@@ -8,24 +8,24 @@ Before setting up the project, ensure you have the following tools installed on 
 
 ### Required Tools
 
-#### 1. Node.js (v18 or higher)
+#### 1. Node.js (v20 or higher)
 
 **Installation:**
 
 - **Using nvm (recommended):**
   ```bash
   # Install nvm (if not already installed)
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
   source ~/.bashrc
   
-  # Install Node.js
-  nvm install 20
-  nvm use 20
+  # Install latest LTS Node.js
+  nvm install --lts
+  nvm use --lts
   ```
 
 - **Using package manager (Ubuntu/Debian):**
   ```bash
-  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
   sudo apt-get install -y nodejs
   ```
 
@@ -35,7 +35,7 @@ Before setting up the project, ensure you have the following tools installed on 
   npm --version
   ```
 
-#### 2. pnpm (v8 or higher)
+#### 2. pnpm (v10 or higher)
 
 **Installation:**
 
@@ -102,8 +102,8 @@ Before setting up the project, ensure you have the following tools installed on 
 
 - **Using binary (recommended):**
   ```bash
-  # Download latest release (adjust version as needed)
-  curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+  # Download latest release
+  curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
   chmod +x ./kind
   sudo mv ./kind /usr/local/bin/kind
   ```
@@ -111,7 +111,7 @@ Before setting up the project, ensure you have the following tools installed on 
 - **Using package manager:**
   ```bash
   # Using go install (if Go is installed)
-  go install sigs.k8s.io/kind@v0.20.0
+  go install sigs.k8s.io/kind@latest
   ```
 
 - **Verify installation:**
@@ -159,6 +159,11 @@ Before setting up the project, ensure you have the following tools installed on 
   ```bash
   # Using go install (if Go is installed)
   go install github.com/gitleaks/gitleaks/v8@latest
+  ```
+
+- **Using package manager (Homebrew on macOS):**
+  ```bash
+  brew install gitleaks
   ```
 
 - **Verify installation:**
