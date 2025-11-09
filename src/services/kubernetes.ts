@@ -2,10 +2,13 @@ import * as k8s from '@kubernetes/client-node';
 import { Instance, InstanceStatus } from '../types/tenant.js';
 
 interface KubernetesError extends Error {
-  body?: {
-    reason?: string;
-  };
+  body?:
+    | string
+    | {
+        reason?: string;
+      };
   statusCode?: number;
+  code?: number;
 }
 
 function isKubernetesError(error: unknown): error is KubernetesError {
@@ -38,7 +41,7 @@ export class KubernetesService {
       await this.coreApi.createNamespace({ body: namespace });
       console.log(`Namespace created: tenant-${tenantId}`);
     } catch (error: unknown) {
-      if (isKubernetesError(error) && error.body?.reason === 'AlreadyExists') {
+      if (isKubernetesError(error) && (error.statusCode === 409 || error.code === 409)) {
         console.log(`Namespace already exists: tenant-${tenantId}`);
       } else {
         throw error;
@@ -82,6 +85,7 @@ export class KubernetesService {
               {
                 name: 'app-container',
                 image: 'tenant-app:latest',
+                imagePullPolicy: 'Never',
                 ports: [{ containerPort: 9090 }],
                 env: [
                   { name: 'TENANT_ID', value: tenantId },
@@ -140,7 +144,7 @@ export class KubernetesService {
       await this.coreApi.createNamespacedService({ namespace, body: service });
       console.log(`Service created: instance-${instanceId} in ${namespace}`);
     } catch (error: unknown) {
-      if (isKubernetesError(error) && error.body?.reason === 'AlreadyExists') {
+      if (isKubernetesError(error) && (error.statusCode === 409 || error.code === 409)) {
         console.log(`Instance already exists: ${instanceId}`);
       } else {
         throw error;

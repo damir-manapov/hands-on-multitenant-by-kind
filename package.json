@@ -15,7 +15,8 @@
     "type-check": "tsc --noEmit",
     "check": "./check.sh",
     "health": "./health.sh",
-    "build:app": "./build-app.sh"
+    "build:app": "./build-app.sh",
+    "demo": "./demo.sh"
   },
   "keywords": [
     "multitenant",

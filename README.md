@@ -204,6 +204,19 @@ This creates a Kubernetes cluster with:
 - 2 worker nodes
 - Port mappings for ingress (80→8080, 443→8443)
 
+**To reset the cluster** (delete and recreate):
+
+```bash
+kind delete cluster --name multitenant-research
+kind create cluster --config kind-config.yaml
+```
+
+Or use the demo script (resets by default):
+
+```bash
+./demo.sh
+```
+
 ### 4. Install Tenant App Dependencies
 
 Install dependencies for the tenant application:
@@ -245,6 +258,42 @@ kubectl config use-context kind-multitenant-research
 # Verify nodes
 kubectl get nodes
 ```
+
+### 7. Quick Start Demo (Optional)
+
+For a quick demo with two tenants, you can use the automated script:
+
+```bash
+pnpm demo
+```
+
+Or run directly:
+
+```bash
+./demo.sh
+```
+
+This will automatically:
+- **Reset the kind cluster** (delete and recreate)
+- Build and load the tenant app image
+- Start the API server
+- Create two tenants (acme and globex)
+- Create an instance for each tenant
+- Provide instructions for browser access
+
+**To skip cluster reset** (use existing cluster):
+
+```bash
+./demo.sh --no-reset
+```
+
+Or:
+
+```bash
+./demo.sh -n
+```
+
+By default, the demo script resets the kind cluster to ensure a clean state.
 
 ## Development
 
@@ -367,6 +416,8 @@ This script checks the health of your dependencies:
 │   ├── Dockerfile             # Docker image for tenant app
 │   └── package.json           # App dependencies
 ├── build-app.sh               # Build and load tenant app script
+├── demo.sh                    # Quick start demo script
+├── port-forward.sh            # Helper script for port forwarding
 ├── src/
 │   ├── types/
 │   │   └── tenant.ts          # Type definitions for tenants and instances
@@ -473,11 +524,21 @@ curl -X POST http://localhost:3000/api/tenants \
   -H "Content-Type: application/json" \
   -d '{"id": "acme", "name": "Acme Corporation"}'
 
+# Create another tenant
+curl -X POST http://localhost:3000/api/tenants \
+  -H "Content-Type: application/json" \
+  -d '{"id": "globex", "name": "Globex Corporation"}'
+
 # List all tenants
 curl http://localhost:3000/api/tenants
 
-# Create an instance
+# Create an instance for acme
 curl -X POST http://localhost:3000/api/tenants/acme/instances \
+  -H "Content-Type: application/json" \
+  -d '{"instanceId": "instance-1"}'
+
+# Create an instance for globex
+curl -X POST http://localhost:3000/api/tenants/globex/instances \
   -H "Content-Type: application/json" \
   -d '{"instanceId": "instance-1"}'
 
@@ -490,6 +551,76 @@ curl http://localhost:3000/api/tenants/acme/instances/instance-1
 # Delete an instance
 curl -X DELETE http://localhost:3000/api/tenants/acme/instances/instance-1
 ```
+
+### Accessing Tenant Apps in Browser
+
+**⚠️ IMPORTANT:** The tenant apps run inside Kubernetes. You **MUST** set up port forwarding **BEFORE** you can access `http://localhost:9090/`. Without port forwarding, curl will fail with "Connection refused".
+
+**Step 1: Wait for pods to be ready**
+
+First, make sure the pods are running:
+
+```bash
+kubectl get pods -n tenant-acme
+kubectl get pods -n tenant-globex
+```
+
+Wait until the pods show `STATUS: Running` and `READY: 1/1`.
+
+**Step 2: Set up port forwarding**
+
+You have two options:
+
+**Option A: Use the helper script** (recommended):
+
+```bash
+# For tenant acme (in one terminal)
+./port-forward.sh acme
+
+# For tenant globex (in another terminal)
+./port-forward.sh globex
+```
+
+**Option B: Use kubectl directly**:
+
+**For tenant acme** (in one terminal):
+```bash
+kubectl port-forward -n tenant-acme service/instance-instance-1 9090:9090
+```
+
+**For tenant globex** (in another terminal):
+```bash
+kubectl port-forward -n tenant-globex service/instance-instance-1 9091:9090
+```
+
+**Step 3: Test the connection**
+
+**In a new terminal** (keep port forwarding running), test with curl:
+
+```bash
+# Test acme tenant
+curl http://localhost:9090/
+
+# Test globex tenant
+curl http://localhost:9091/
+```
+
+**Step 4: Access the apps**
+
+Once port forwarding is active, you can access:
+- **Acme tenant:**
+  - Root: http://localhost:9090/
+  - Health: http://localhost:9090/health
+  - Inspect: http://localhost:9090/inspect
+
+- **Globex tenant:**
+  - Root: http://localhost:9091/
+  - Health: http://localhost:9091/health
+  - Inspect: http://localhost:9091/inspect
+
+**Note:** 
+- Keep the port forwarding terminal(s) open. If you close them, the connection will be lost.
+- Port forwarding must be running **before** you can use curl or open the URL in a browser.
 
 ## Usage
 
@@ -546,6 +677,25 @@ kubectl get pods -n tenant-acme
 **View pod logs:**
 ```bash
 kubectl logs -n tenant-acme deployment/instance-instance-1
+```
+
+**Reset the kind cluster** (delete and recreate):
+
+```bash
+kind delete cluster --name multitenant-research
+kind create cluster --config kind-config.yaml
+```
+
+Or use the demo script (resets by default):
+
+```bash
+./demo.sh
+```
+
+To skip reset and use existing cluster:
+
+```bash
+./demo.sh --no-reset
 ```
 
 **Delete an instance:**
