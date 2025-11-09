@@ -347,7 +347,7 @@ curl http://localhost:9090/inspect
 pnpm dev
 ```
 
-This starts the NestJS REST API server with hot-reload using `tsx watch`. The API will be available at `http://localhost:3000/api`.
+This starts the NestJS REST API server with hot-reload using `tsx watch`. The API will be available at `http://localhost:3000`.
 
 ### Build the Project
 
@@ -504,11 +504,9 @@ The application provides a REST API built with NestJS for managing tenants and i
 
 ### API Endpoints
 
-All endpoints are prefixed with `/api`.
-
 #### Tenants
 
-- **POST** `/api/tenants` - Create a new tenant
+- **POST** `/tenants` - Create a new tenant
   ```json
   {
     "id": "acme",
@@ -516,29 +514,35 @@ All endpoints are prefixed with `/api`.
   }
   ```
 
-- **GET** `/api/tenants` - List all tenants
+- **GET** `/tenants` - List all tenants
 
-- **GET** `/api/tenants/:id` - Get a specific tenant by ID
+- **GET** `/tenants/:id` - Get a specific tenant by ID
 
+#### Health
+
+- **GET** `/health` - Health check endpoint
 
 ### Example API Usage
 
 ```bash
 # Create a tenant
-curl -X POST http://api.localhost:8080/api/tenants \
+curl -X POST http://api.localhost:8080/tenants \
   -H "Content-Type: application/json" \
   -d '{"id": "acme", "name": "Acme Corporation"}'
 
 # Create another tenant
-curl -X POST http://api.localhost:8080/api/tenants \
+curl -X POST http://api.localhost:8080/tenants \
   -H "Content-Type: application/json" \
   -d '{"id": "globex", "name": "Globex Corporation"}'
 
 # List all tenants
-curl http://api.localhost:8080/api/tenants
+curl http://api.localhost:8080/tenants
 
 # Get a tenant
-curl http://api.localhost:8080/api/tenants/acme
+curl http://api.localhost:8080/tenants/acme
+
+# Health check
+curl http://api.localhost:8080/health
 ```
 
 ### Accessing API and Tenant Apps via Subdomains
@@ -584,9 +588,10 @@ kubectl get ingress -A
 Once everything is ready, you can access the API and tenants via subdomains:
 
 - **API:**
-  - List tenants: http://api.localhost:8080/api/tenants
-  - Get tenant: http://api.localhost:8080/api/tenants/acme
-  - Create tenant: POST http://api.localhost:8080/api/tenants
+  - Health: http://api.localhost:8080/health
+  - List tenants: http://api.localhost:8080/tenants
+  - Get tenant: http://api.localhost:8080/tenants/acme
+  - Create tenant: POST http://api.localhost:8080/tenants
 
 - **Acme tenant:**
   - Root: http://acme.localhost:8080/
@@ -602,7 +607,8 @@ Once everything is ready, you can access the API and tenants via subdomains:
 
 ```bash
 # Test API
-curl http://api.localhost:8080/api/tenants
+curl http://api.localhost:8080/health
+curl http://api.localhost:8080/tenants
 
 # Test acme tenant
 curl http://acme.localhost:8080/

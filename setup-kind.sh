@@ -34,10 +34,22 @@ echo ""
 echo "Installing nginx-ingress controller..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 echo "Waiting for ingress controller to be ready..."
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s || echo "Warning: Ingress controller may not be ready yet"
+for i in {1..30}; do
+  if kubectl wait --namespace ingress-nginx \
+    --for=condition=ready pod \
+    --selector=app.kubernetes.io/component=controller \
+    --timeout=10s > /dev/null 2>&1; then
+    echo "Ingress controller is ready"
+    break
+  fi
+  if [ $i -eq 30 ]; then
+    echo "Warning: Ingress controller may not be ready yet"
+  fi
+  sleep 2
+done
+# Give ingress controller a moment to fully initialize
+echo "Waiting for ingress controller to fully initialize..."
+sleep 5
 
 echo ""
 echo "=========================================="

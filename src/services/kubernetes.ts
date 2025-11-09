@@ -23,7 +23,13 @@ export class KubernetesService {
 
   constructor() {
     this.kc = new k8s.KubeConfig();
-    this.kc.loadFromDefault();
+    // Try to load in-cluster config first (when running in Kubernetes)
+    try {
+      this.kc.loadFromCluster();
+    } catch {
+      // Fall back to default config (for local development)
+      this.kc.loadFromDefault();
+    }
     this.k8sApi = this.kc.makeApiClient(k8s.AppsV1Api);
     this.coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
     this.networkingApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
