@@ -14,10 +14,6 @@ async function bootstrap(): Promise<void> {
   console.log('  POST   /api/tenants');
   console.log('  GET    /api/tenants');
   console.log('  GET    /api/tenants/:id');
-  console.log('  POST   /api/tenants/:id/instances');
-  console.log('  GET    /api/tenants/:id/instances');
-  console.log('  GET    /api/tenants/:id/instances/:instanceId');
-  console.log('  DELETE /api/tenants/:id/instances/:instanceId');
 }
 
 bootstrap().catch(console.error);

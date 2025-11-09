@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
-import { Instance, InstanceStatus } from '../types/tenant.js';
+import { DeploymentStatus } from '../types/tenant.js';
 
 interface KubernetesError extends Error {
   body?:
@@ -49,35 +49,32 @@ export class KubernetesService {
     }
   }
 
-  async createInstance(tenantId: string, instanceId: string): Promise<void> {
+  async createDeployment(tenantId: string): Promise<void> {
     const namespace = `tenant-${tenantId}`;
 
     // Create deployment
     const deployment: k8s.V1Deployment = {
       metadata: {
-        name: `instance-${instanceId}`,
+        name: tenantId,
         namespace,
         labels: {
-          app: 'instance',
+          app: 'tenant-app',
           tenant: tenantId,
-          instance: instanceId,
         },
       },
       spec: {
         replicas: 1,
         selector: {
           matchLabels: {
-            app: 'instance',
+            app: 'tenant-app',
             tenant: tenantId,
-            instance: instanceId,
           },
         },
         template: {
           metadata: {
             labels: {
-              app: 'instance',
+              app: 'tenant-app',
               tenant: tenantId,
-              instance: instanceId,
             },
           },
           spec: {
@@ -89,7 +86,6 @@ export class KubernetesService {
                 ports: [{ containerPort: 9090 }],
                 env: [
                   { name: 'TENANT_ID', value: tenantId },
-                  { name: 'INSTANCE_ID', value: instanceId },
                   { name: 'PORT', value: '9090' },
                 ],
                 resources: {
@@ -112,19 +108,17 @@ export class KubernetesService {
     // Create service
     const service: k8s.V1Service = {
       metadata: {
-        name: `instance-${instanceId}`,
+        name: tenantId,
         namespace,
         labels: {
-          app: 'instance',
+          app: 'tenant-app',
           tenant: tenantId,
-          instance: instanceId,
         },
       },
       spec: {
         selector: {
-          app: 'instance',
+          app: 'tenant-app',
           tenant: tenantId,
-          instance: instanceId,
         },
         ports: [
           {
@@ -139,25 +133,25 @@ export class KubernetesService {
 
     try {
       await this.k8sApi.createNamespacedDeployment({ namespace, body: deployment });
-      console.log(`Deployment created: instance-${instanceId} in ${namespace}`);
+      console.log(`Deployment created: ${tenantId} in ${namespace}`);
 
       await this.coreApi.createNamespacedService({ namespace, body: service });
-      console.log(`Service created: instance-${instanceId} in ${namespace}`);
+      console.log(`Service created: ${tenantId} in ${namespace}`);
     } catch (error: unknown) {
       if (isKubernetesError(error) && (error.statusCode === 409 || error.code === 409)) {
-        console.log(`Instance already exists: ${instanceId}`);
+        console.log(`Deployment already exists for tenant: ${tenantId}`);
       } else {
         throw error;
       }
     }
   }
 
-  async getInstanceStatus(tenantId: string, instanceId: string): Promise<InstanceStatus> {
+  async getDeploymentStatus(tenantId: string): Promise<DeploymentStatus> {
     const namespace = `tenant-${tenantId}`;
 
     try {
       const deployment = await this.k8sApi.readNamespacedDeployment({
-        name: `instance-${instanceId}`,
+        name: tenantId,
         namespace,
       });
 
@@ -165,76 +159,41 @@ export class KubernetesService {
       const readyReplicas: number = deployment.status?.readyReplicas ?? 0;
 
       if (readyReplicas === replicas && replicas > 0) {
-        return InstanceStatus.Running;
+        return DeploymentStatus.Running;
       } else if (readyReplicas > 0) {
-        return InstanceStatus.Creating;
+        return DeploymentStatus.Creating;
       } else {
-        return InstanceStatus.Stopped;
+        return DeploymentStatus.Stopped;
       }
     } catch (error: unknown) {
       if (isKubernetesError(error) && error.statusCode === 404) {
-        return InstanceStatus.Error;
+        return DeploymentStatus.Error;
       }
       throw error;
     }
   }
 
-  async deleteInstance(tenantId: string, instanceId: string): Promise<void> {
+  async deleteDeployment(tenantId: string): Promise<void> {
     const namespace = `tenant-${tenantId}`;
 
     try {
       await this.k8sApi.deleteNamespacedDeployment({
-        name: `instance-${instanceId}`,
+        name: tenantId,
         namespace,
       });
-      console.log(`Deployment deleted: instance-${instanceId}`);
+      console.log(`Deployment deleted for tenant: ${tenantId}`);
 
       await this.coreApi.deleteNamespacedService({
-        name: `instance-${instanceId}`,
+        name: tenantId,
         namespace,
       });
-      console.log(`Service deleted: instance-${instanceId}`);
+      console.log(`Service deleted for tenant: ${tenantId}`);
     } catch (error: unknown) {
       if (isKubernetesError(error) && error.statusCode === 404) {
-        console.log(`Instance not found: ${instanceId}`);
+        console.log(`Deployment not found for tenant: ${tenantId}`);
       } else {
         throw error;
       }
-    }
-  }
-
-  async listInstances(tenantId: string): Promise<Instance[]> {
-    const namespace = `tenant-${tenantId}`;
-
-    try {
-      const response = await this.k8sApi.listNamespacedDeployment({ namespace });
-      const instances: Instance[] = [];
-
-      for (const deployment of response.items) {
-        const instanceId: string = deployment.metadata?.labels?.['instance'] ?? 'unknown';
-        const status = await this.getInstanceStatus(tenantId, instanceId);
-
-        const name: string = deployment.metadata?.name ?? instanceId;
-        const createdAt: Date = deployment.metadata?.creationTimestamp
-          ? new Date(deployment.metadata.creationTimestamp)
-          : new Date();
-
-        instances.push({
-          id: instanceId,
-          tenantId,
-          name,
-          status,
-          createdAt,
-          namespace,
-        });
-      }
-
-      return instances;
-    } catch (error: unknown) {
-      if (isKubernetesError(error) && error.statusCode === 404) {
-        return [];
-      }
-      throw error;
     }
   }
 }

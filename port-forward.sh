@@ -12,10 +12,10 @@ elif [ "$TENANT" = "globex" ]; then
 fi
 
 echo "Setting up port forwarding for tenant: $TENANT"
-echo "Forwarding port $PORT to service instance-instance-1 in namespace tenant-$TENANT"
+echo "Forwarding port $PORT to service $TENANT in namespace tenant-$TENANT"
 echo ""
 echo "Press Ctrl+C to stop port forwarding"
 echo ""
 
-kubectl port-forward -n "tenant-$TENANT" service/instance-instance-1 "$PORT:9090"
+kubectl port-forward -n "tenant-$TENANT" service/"$TENANT" "$PORT:9090"
 

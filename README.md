@@ -305,12 +305,12 @@ To test the tenant app locally before deploying to Kubernetes:
 cd app
 pnpm install
 pnpm run build
-TENANT_ID=acme INSTANCE_ID=instance-1 pnpm start
+TENANT_ID=acme pnpm start
 ```
 
 **Note:** If port 9090 is already in use, specify a different port:
 ```bash
-PORT=9091 TENANT_ID=acme INSTANCE_ID=instance-1 pnpm start
+PORT=9091 TENANT_ID=acme pnpm start
 ```
 
 The app will start on `http://localhost:9090` (or the port specified by `PORT`). You can test it:
@@ -501,20 +501,6 @@ All endpoints are prefixed with `/api`.
 
 - **GET** `/api/tenants/:id` - Get a specific tenant by ID
 
-#### Instances
-
-- **POST** `/api/tenants/:id/instances` - Create an instance for a tenant
-  ```json
-  {
-    "instanceId": "instance-1"
-  }
-  ```
-
-- **GET** `/api/tenants/:id/instances` - List all instances for a tenant
-
-- **GET** `/api/tenants/:id/instances/:instanceId` - Get a specific instance
-
-- **DELETE** `/api/tenants/:id/instances/:instanceId` - Delete an instance
 
 ### Example API Usage
 
@@ -532,24 +518,8 @@ curl -X POST http://localhost:3000/api/tenants \
 # List all tenants
 curl http://localhost:3000/api/tenants
 
-# Create an instance for acme
-curl -X POST http://localhost:3000/api/tenants/acme/instances \
-  -H "Content-Type: application/json" \
-  -d '{"instanceId": "instance-1"}'
-
-# Create an instance for globex
-curl -X POST http://localhost:3000/api/tenants/globex/instances \
-  -H "Content-Type: application/json" \
-  -d '{"instanceId": "instance-1"}'
-
-# List instances for a tenant
-curl http://localhost:3000/api/tenants/acme/instances
-
-# Get a specific instance
-curl http://localhost:3000/api/tenants/acme/instances/instance-1
-
-# Delete an instance
-curl -X DELETE http://localhost:3000/api/tenants/acme/instances/instance-1
+# Get the instance for a tenant (automatically created when tenant is created)
+curl http://localhost:3000/api/tenants/acme/instance
 ```
 
 ### Accessing Tenant Apps in Browser
@@ -585,12 +555,12 @@ You have two options:
 
 **For tenant acme** (in one terminal):
 ```bash
-kubectl port-forward -n tenant-acme service/instance-instance-1 9090:9090
+kubectl port-forward -n tenant-acme service/acme 9090:9090
 ```
 
 **For tenant globex** (in another terminal):
 ```bash
-kubectl port-forward -n tenant-globex service/instance-instance-1 9091:9090
+kubectl port-forward -n tenant-globex service/globex 9091:9090
 ```
 
 **Step 3: Test the connection**
@@ -628,28 +598,18 @@ The application demonstrates a multitenant architecture where:
 
 1. **Tenants** are isolated in separate Kubernetes namespaces
 2. **Instances** are deployed as Kubernetes deployments within tenant namespaces
-3. Each tenant can have multiple instances
+3. Each tenant automatically gets one instance when created
 
 ### Example Workflow
 
-1. Create a tenant:
+1. Create a tenant (instance is automatically created):
    ```typescript
    const tenant = await tenantService.createTenant('acme', 'Acme Corporation');
    ```
 
-2. Create an instance for a tenant:
+2. Get the instance for a tenant:
    ```typescript
-   const instance = await tenantService.createInstance('acme', 'instance-1');
-   ```
-
-3. List instances:
-   ```typescript
-   const instances = await tenantService.listInstances('acme');
-   ```
-
-4. Check instance status:
-   ```typescript
-   const status = await tenantService.getInstance('acme', 'instance-1');
+   const instance = await tenantService.getInstance('acme', 'instance-1');
    ```
 
 ## Kubernetes Operations
@@ -676,7 +636,7 @@ kubectl get pods -n tenant-acme
 
 **View pod logs:**
 ```bash
-kubectl logs -n tenant-acme deployment/instance-instance-1
+kubectl logs -n tenant-acme deployment/acme
 ```
 
 **Reset the kind cluster** (delete and recreate):
@@ -698,10 +658,10 @@ To skip reset and use existing cluster:
 ./demo.sh --no-reset
 ```
 
-**Delete an instance:**
+**Delete a tenant's instance** (each tenant has one instance automatically):
 ```bash
-kubectl delete deployment instance-instance-1 -n tenant-acme
-kubectl delete service instance-instance-1 -n tenant-acme
+kubectl delete deployment acme -n tenant-acme
+kubectl delete service acme -n tenant-acme
 ```
 
 **Delete a tenant namespace:**

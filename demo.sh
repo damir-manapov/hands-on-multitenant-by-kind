@@ -80,23 +80,11 @@ curl -s -X POST http://localhost:3000/api/tenants \
   -d '{"id": "globex", "name": "Globex Corporation"}' | jq . || echo ""
 
 echo ""
-echo "Creating instance for tenant acme..."
-curl -s -X POST http://localhost:3000/api/tenants/acme/instances \
-  -H "Content-Type: application/json" \
-  -d '{"instanceId": "instance-1"}' | jq . || echo ""
-
-echo ""
-echo "Creating instance for tenant globex..."
-curl -s -X POST http://localhost:3000/api/tenants/globex/instances \
-  -H "Content-Type: application/json" \
-  -d '{"instanceId": "instance-1"}' | jq . || echo ""
-
-echo ""
 echo "Waiting for instances to be ready..."
 echo "Checking pod status..."
 for i in {1..30}; do
-  ACME_READY=$(kubectl get pods -n tenant-acme -l app=instance -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Pending")
-  GLOBEX_READY=$(kubectl get pods -n tenant-globex -l app=instance -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Pending")
+  ACME_READY=$(kubectl get pods -n tenant-acme -l app=tenant-app -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Pending")
+  GLOBEX_READY=$(kubectl get pods -n tenant-globex -l app=tenant-app -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Pending")
   if [ "$ACME_READY" = "Running" ] && [ "$GLOBEX_READY" = "Running" ]; then
     echo "Pods are running!"
     break
@@ -117,9 +105,9 @@ echo ""
 
 # Set up port forwarding in background
 echo "Setting up port forwarding for tenant apps..."
-kubectl port-forward -n tenant-acme service/instance-instance-1 9090:9090 > /tmp/port-forward-acme.log 2>&1 &
+kubectl port-forward -n tenant-acme service/acme 9090:9090 > /tmp/port-forward-acme.log 2>&1 &
 PF_ACME_PID=$!
-kubectl port-forward -n tenant-globex service/instance-instance-1 9091:9090 > /tmp/port-forward-globex.log 2>&1 &
+kubectl port-forward -n tenant-globex service/globex 9091:9090 > /tmp/port-forward-globex.log 2>&1 &
 PF_GLOBEX_PID=$!
 
 # Wait a moment for port forwarding to start
@@ -148,7 +136,7 @@ fi
 echo ""
 echo "API endpoints:"
 echo "  - List tenants: curl http://localhost:3000/api/tenants"
-echo "  - List instances: curl http://localhost:3000/api/tenants/acme/instances"
+echo "  - Get tenant: curl http://localhost:3000/api/tenants/acme"
 echo ""
 echo "To stop services:"
 echo "  - API server: kill $API_PID"

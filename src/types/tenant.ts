@@ -4,6 +4,7 @@ export interface Tenant {
   namespace: string;
   createdAt: Date;
   status: TenantStatus;
+  deploymentStatus: DeploymentStatus;
 }
 
 export enum TenantStatus {
@@ -12,16 +13,7 @@ export enum TenantStatus {
   Suspended = 'suspended',
 }
 
-export interface Instance {
-  id: string;
-  tenantId: string;
-  name: string;
-  status: InstanceStatus;
-  createdAt: Date;
-  namespace: string;
-}
-
-export enum InstanceStatus {
+export enum DeploymentStatus {
   Creating = 'creating',
   Running = 'running',
   Stopped = 'stopped',

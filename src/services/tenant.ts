@@ -1,4 +1,4 @@
-import { Tenant, TenantStatus, Instance, InstanceStatus } from '../types/tenant.js';
+import { Tenant, TenantStatus, DeploymentStatus } from '../types/tenant.js';
 import { KubernetesService } from './kubernetes.js';
 
 export class TenantService {
@@ -16,12 +16,16 @@ export class TenantService {
     // Create namespace in Kubernetes
     await this.kubernetesService.createNamespace(id);
 
+    // Automatically create deployment for the tenant
+    await this.kubernetesService.createDeployment(id);
+
     const tenant: Tenant = {
       id,
       name,
       namespace,
       createdAt: new Date(),
       status: TenantStatus.Active,
+      deploymentStatus: DeploymentStatus.Creating,
     };
 
     this.tenants.set(id, tenant);
@@ -30,56 +34,20 @@ export class TenantService {
     return tenant;
   }
 
-  getTenant(id: string): Tenant | null {
-    return this.tenants.get(id) ?? null;
+  async getTenant(id: string): Promise<Tenant | null> {
+    const tenant = this.tenants.get(id);
+    if (!tenant) {
+      return null;
+    }
+
+    // Update deployment status from Kubernetes
+    const deploymentStatus = await this.kubernetesService.getDeploymentStatus(id);
+    tenant.deploymentStatus = deploymentStatus;
+
+    return tenant;
   }
 
   listTenants(): Tenant[] {
     return Array.from(this.tenants.values());
-  }
-
-  async createInstance(tenantId: string, instanceId: string): Promise<Instance> {
-    const tenant = this.getTenant(tenantId);
-    if (!tenant) {
-      throw new Error(`Tenant not found: ${tenantId}`);
-    }
-
-    if (tenant.status !== TenantStatus.Active) {
-      throw new Error(`Tenant is not active: ${tenantId}`);
-    }
-
-    await this.kubernetesService.createInstance(tenantId, instanceId);
-
-    const instance: Instance = {
-      id: instanceId,
-      tenantId,
-      name: `instance-${instanceId}`,
-      status: InstanceStatus.Creating,
-      createdAt: new Date(),
-      namespace: tenant.namespace,
-    };
-
-    return instance;
-  }
-
-  async getInstance(tenantId: string, instanceId: string): Promise<Instance | null> {
-    const status = await this.kubernetesService.getInstanceStatus(tenantId, instanceId);
-
-    return {
-      id: instanceId,
-      tenantId,
-      name: `instance-${instanceId}`,
-      status,
-      createdAt: new Date(), // In production, fetch from K8s metadata
-      namespace: `tenant-${tenantId}`,
-    };
-  }
-
-  async listInstances(tenantId: string): Promise<Instance[]> {
-    return await this.kubernetesService.listInstances(tenantId);
-  }
-
-  async deleteInstance(tenantId: string, instanceId: string): Promise<void> {
-    await this.kubernetesService.deleteInstance(tenantId, instanceId);
   }
 }
