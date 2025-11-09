@@ -44,15 +44,25 @@ done
 
 echo ""
 echo "Creating tenant 1: acme"
-curl -s -X POST http://api.localhost:8080/api/tenants \
+TENANT1_RESPONSE=$(curl -s -X POST http://api.localhost:8080/api/tenants \
   -H "Content-Type: application/json" \
-  -d '{"id": "acme", "name": "Acme Corporation"}' | jq . || echo ""
+  -d '{"id": "acme", "name": "Acme Corporation"}')
+if echo "$TENANT1_RESPONSE" | jq . > /dev/null 2>&1; then
+  echo "$TENANT1_RESPONSE" | jq .
+else
+  echo "Response: $TENANT1_RESPONSE"
+fi
 
 echo ""
 echo "Creating tenant 2: globex"
-curl -s -X POST http://api.localhost:8080/api/tenants \
+TENANT2_RESPONSE=$(curl -s -X POST http://api.localhost:8080/api/tenants \
   -H "Content-Type: application/json" \
-  -d '{"id": "globex", "name": "Globex Corporation"}' | jq . || echo ""
+  -d '{"id": "globex", "name": "Globex Corporation"}')
+if echo "$TENANT2_RESPONSE" | jq . > /dev/null 2>&1; then
+  echo "$TENANT2_RESPONSE" | jq .
+else
+  echo "Response: $TENANT2_RESPONSE"
+fi
 
 echo ""
 echo "Waiting for instances to be ready..."
