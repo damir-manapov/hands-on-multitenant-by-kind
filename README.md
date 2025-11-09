@@ -232,24 +232,34 @@ pnpm install
 cd ..
 ```
 
-### 5. Build Tenant App Docker Image
+### 5. Build Docker Images
 
-Build the tenant application Docker image and load it into the kind cluster:
+Build the tenant application and API Docker images and load them into the kind cluster:
 
+**Build tenant app:**
 ```bash
 pnpm build:app
 ```
 
 Or run the script directly:
-
 ```bash
 ./build-app.sh
 ```
 
+**Build API:**
+```bash
+pnpm build:api
+```
+
+Or run the script directly:
+```bash
+./build-api.sh
+```
+
 This will:
-- Build the TypeScript tenant application
-- Create a Docker image named `tenant-app:latest`
-- Load the image into the kind cluster
+- Build the TypeScript applications
+- Create Docker images (`tenant-app:latest` and `multitenant-api:latest`)
+- Load the images into the kind cluster
 
 ### 6. Verify Cluster
 
@@ -280,10 +290,10 @@ Or run directly:
 
 This will automatically:
 - **Reset the kind cluster** (delete and recreate)
-- Build and load the tenant app image
-- Start the API server
-- Create two tenants (acme and globex)
-- Create an instance for each tenant
+- Build and load the tenant app and API images
+- Deploy the API to Kubernetes
+- Create two tenants (acme and globex) - each tenant automatically gets one deployment
+- Set up ingress for API and tenants
 - Provide instructions for browser access
 
 **To skip cluster reset** (use existing cluster):
@@ -422,8 +432,11 @@ This script checks the health of your dependencies:
 │   └── package.json           # App dependencies
 ├── setup-kind.sh              # Setup kind cluster with ingress
 ├── build-app.sh               # Build and load tenant app script
+├── build-api.sh               # Build and load API script
 ├── demo.sh                    # Quick start demo script
 ├── port-forward.sh            # Helper script for port forwarding
+├── k8s/
+│   └── api-deployment.yaml    # Kubernetes manifests for API
 ├── src/
 │   ├── types/
 │   │   └── tenant.ts          # Type definitions for tenants and instances
@@ -512,37 +525,39 @@ All endpoints are prefixed with `/api`.
 
 ```bash
 # Create a tenant
-curl -X POST http://localhost:3000/api/tenants \
+curl -X POST http://api.localhost:8080/api/tenants \
   -H "Content-Type: application/json" \
   -d '{"id": "acme", "name": "Acme Corporation"}'
 
 # Create another tenant
-curl -X POST http://localhost:3000/api/tenants \
+curl -X POST http://api.localhost:8080/api/tenants \
   -H "Content-Type: application/json" \
   -d '{"id": "globex", "name": "Globex Corporation"}'
 
 # List all tenants
-curl http://localhost:3000/api/tenants
+curl http://api.localhost:8080/api/tenants
 
-# Get the instance for a tenant (automatically created when tenant is created)
-curl http://localhost:3000/api/tenants/acme/instance
+# Get a tenant
+curl http://api.localhost:8080/api/tenants/acme
 ```
 
-### Accessing Tenant Apps via Subdomains
+### Accessing API and Tenant Apps via Subdomains
 
-Tenants are accessible via subdomains using Kubernetes Ingress. Each tenant gets its own subdomain automatically.
+The API and tenants are accessible via subdomains using Kubernetes Ingress. Each tenant gets its own subdomain automatically.
 
 **Step 1: Configure /etc/hosts**
 
-Add the tenant subdomains to your `/etc/hosts` file:
+Add the API and tenant subdomains to your `/etc/hosts` file:
 
 ```bash
+sudo bash -c 'echo "127.0.0.1 api.localhost" >> /etc/hosts'
 sudo bash -c 'echo "127.0.0.1 acme.localhost" >> /etc/hosts'
 sudo bash -c 'echo "127.0.0.1 globex.localhost" >> /etc/hosts'
 ```
 
 Or edit `/etc/hosts` manually and add:
 ```
+127.0.0.1 api.localhost
 127.0.0.1 acme.localhost
 127.0.0.1 globex.localhost
 ```
@@ -566,7 +581,12 @@ kubectl get ingress -A
 
 **Step 3: Access the apps**
 
-Once everything is ready, you can access tenants via subdomains:
+Once everything is ready, you can access the API and tenants via subdomains:
+
+- **API:**
+  - List tenants: http://api.localhost:8080/api/tenants
+  - Get tenant: http://api.localhost:8080/api/tenants/acme
+  - Create tenant: POST http://api.localhost:8080/api/tenants
 
 - **Acme tenant:**
   - Root: http://acme.localhost:8080/
@@ -581,6 +601,9 @@ Once everything is ready, you can access tenants via subdomains:
 **Test with curl:**
 
 ```bash
+# Test API
+curl http://api.localhost:8080/api/tenants
+
 # Test acme tenant
 curl http://acme.localhost:8080/
 
@@ -590,8 +613,9 @@ curl http://globex.localhost:8080/
 
 **Note:** 
 - The ingress controller listens on port 8080 (mapped from port 80 in the kind cluster)
+- The API runs in Kubernetes and is accessible at `api.localhost:8080`
 - Each tenant automatically gets an Ingress resource created when the tenant is created
-- The subdomain format is `{tenant-id}.localhost`
+- The subdomain format is `{tenant-id}.localhost` for tenants and `api.localhost` for the API
 
 ## Usage
 
