@@ -37,3 +37,7 @@ tmp/
 temp/
 *.tmp
 
+# App directory
+app/node_modules/
+app/dist/
+

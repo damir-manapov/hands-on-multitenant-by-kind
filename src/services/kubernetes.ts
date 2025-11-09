@@ -81,11 +81,12 @@ export class KubernetesService {
             containers: [
               {
                 name: 'app-container',
-                image: 'nginx:alpine',
-                ports: [{ containerPort: 80 }],
+                image: 'tenant-app:latest',
+                ports: [{ containerPort: 8080 }],
                 env: [
                   { name: 'TENANT_ID', value: tenantId },
                   { name: 'INSTANCE_ID', value: instanceId },
+                  { name: 'PORT', value: '8080' },
                 ],
                 resources: {
                   requests: {
@@ -124,8 +125,8 @@ export class KubernetesService {
         ports: [
           {
             protocol: 'TCP',
-            port: 80,
-            targetPort: 80,
+            port: 8080,
+            targetPort: 8080,
           },
         ],
         type: 'ClusterIP',

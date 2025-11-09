@@ -1,6 +1,6 @@
-# Multitenant Research Spinning App
+# Multitenant Spinning App
 
-A multitenant application for managing research instances using Kubernetes (kind) for local development. Built with TypeScript, pnpm, and tsx, featuring strict type checking, ESLint, and Prettier configurations.
+A multitenant application for managing tenant instances using Kubernetes (kind) for local development. Built with TypeScript, pnpm, and tsx, featuring strict type checking, ESLint, and Prettier configurations.
 
 ## Prerequisites
 
@@ -204,7 +204,36 @@ This creates a Kubernetes cluster with:
 - 2 worker nodes
 - Port mappings for ingress (80→8080, 443→8443)
 
-### 4. Verify Cluster
+### 4. Install Tenant App Dependencies
+
+Install dependencies for the tenant application:
+
+```bash
+cd app
+pnpm install
+cd ..
+```
+
+### 5. Build Tenant App Docker Image
+
+Build the tenant application Docker image and load it into the kind cluster:
+
+```bash
+pnpm build:app
+```
+
+Or run the script directly:
+
+```bash
+./build-app.sh
+```
+
+This will:
+- Build the TypeScript tenant application
+- Create a Docker image named `tenant-app:latest`
+- Load the image into the kind cluster
+
+### 6. Verify Cluster
 
 ```bash
 # Check cluster info
@@ -278,8 +307,9 @@ This script performs all code quality checks:
 **What it does:**
 1. ✅ Formats code with Prettier
 2. ✅ Runs ESLint with strict rules
-3. ✅ Scans for secret leaks using gitleaks
-4. ✅ Performs TypeScript type checking (no emit)
+3. ✅ Checks tenant app source code structure and compilation
+4. ✅ Scans for secret leaks using gitleaks
+5. ✅ Performs TypeScript type checking (no emit)
 
 **Output:** Color-coded, informative output showing the status of each check.
 
@@ -294,6 +324,7 @@ This script checks the health of your dependencies:
 **What it does:**
 1. ✅ Checks for vulnerabilities in packages (moderate+ severity)
 2. ✅ Lists outdated dependencies
+3. ✅ Checks tenant app dependencies for vulnerabilities
 
 **Output:** Detailed information about vulnerabilities and outdated packages with suggestions.
 
@@ -301,6 +332,12 @@ This script checks the health of your dependencies:
 
 ```
 .
+├── app/                        # Tenant application
+│   ├── src/
+│   │   └── index.ts           # Simple Express.js app
+│   ├── Dockerfile             # Docker image for tenant app
+│   └── package.json           # App dependencies
+├── build-app.sh               # Build and load tenant app script
 ├── src/
 │   ├── types/
 │   │   └── tenant.ts          # Type definitions for tenants and instances
@@ -312,14 +349,14 @@ This script checks the health of your dependencies:
 │   │   ├── tenants.service.ts     # NestJS service for tenants
 │   │   └── tenants.module.ts      # NestJS module for tenants
 │   ├── dto/
-│   │   ├── create-tenant.dto.ts           # DTO for creating tenants
-│   │   └── create-research-instance.dto.ts # DTO for creating instances
+│   │   ├── create-tenant.dto.ts      # DTO for creating tenants
+│   │   └── create-instance.dto.ts    # DTO for creating instances
 │   ├── app.module.ts          # Main NestJS application module
 │   ├── main.ts                # NestJS application entry point
 │   └── index.ts               # Demo/example script
 ├── k8s/
 │   ├── namespace.yaml         # Example namespace definitions
-│   └── research-instance.yaml.template  # Template for research instances
+│   └── instance.yaml.template  # Template for instances
 ├── kind-config.yaml           # kind cluster configuration
 ├── tsconfig.json              # Strict TypeScript configuration
 ├── .eslintrc.json             # Strict ESLint configuration
@@ -364,7 +401,7 @@ Code formatting is enforced with:
 
 ## REST API
 
-The application provides a REST API built with NestJS for managing tenants and research instances.
+The application provides a REST API built with NestJS for managing tenants and instances.
 
 ### API Endpoints
 
@@ -384,20 +421,20 @@ All endpoints are prefixed with `/api`.
 
 - **GET** `/api/tenants/:id` - Get a specific tenant by ID
 
-#### Research Instances
+#### Instances
 
-- **POST** `/api/tenants/:id/research-instances` - Create a research instance for a tenant
+- **POST** `/api/tenants/:id/instances` - Create an instance for a tenant
   ```json
   {
     "instanceId": "instance-1"
   }
   ```
 
-- **GET** `/api/tenants/:id/research-instances` - List all research instances for a tenant
+- **GET** `/api/tenants/:id/instances` - List all instances for a tenant
 
-- **GET** `/api/tenants/:id/research-instances/:instanceId` - Get a specific research instance
+- **GET** `/api/tenants/:id/instances/:instanceId` - Get a specific instance
 
-- **DELETE** `/api/tenants/:id/research-instances/:instanceId` - Delete a research instance
+- **DELETE** `/api/tenants/:id/instances/:instanceId` - Delete an instance
 
 ### Example API Usage
 
@@ -410,19 +447,19 @@ curl -X POST http://localhost:3000/api/tenants \
 # List all tenants
 curl http://localhost:3000/api/tenants
 
-# Create a research instance
-curl -X POST http://localhost:3000/api/tenants/acme/research-instances \
+# Create an instance
+curl -X POST http://localhost:3000/api/tenants/acme/instances \
   -H "Content-Type: application/json" \
   -d '{"instanceId": "instance-1"}'
 
-# List research instances for a tenant
-curl http://localhost:3000/api/tenants/acme/research-instances
+# List instances for a tenant
+curl http://localhost:3000/api/tenants/acme/instances
 
-# Get a specific research instance
-curl http://localhost:3000/api/tenants/acme/research-instances/instance-1
+# Get a specific instance
+curl http://localhost:3000/api/tenants/acme/instances/instance-1
 
-# Delete a research instance
-curl -X DELETE http://localhost:3000/api/tenants/acme/research-instances/instance-1
+# Delete an instance
+curl -X DELETE http://localhost:3000/api/tenants/acme/instances/instance-1
 ```
 
 ## Usage
@@ -430,8 +467,8 @@ curl -X DELETE http://localhost:3000/api/tenants/acme/research-instances/instanc
 The application demonstrates a multitenant architecture where:
 
 1. **Tenants** are isolated in separate Kubernetes namespaces
-2. **Research instances** are deployed as Kubernetes deployments within tenant namespaces
-3. Each tenant can have multiple research instances
+2. **Instances** are deployed as Kubernetes deployments within tenant namespaces
+3. Each tenant can have multiple instances
 
 ### Example Workflow
 
@@ -440,19 +477,19 @@ The application demonstrates a multitenant architecture where:
    const tenant = await tenantService.createTenant('acme', 'Acme Corporation');
    ```
 
-2. Create a research instance for a tenant:
+2. Create an instance for a tenant:
    ```typescript
-   const instance = await tenantService.createResearchInstance('acme', 'instance-1');
+   const instance = await tenantService.createInstance('acme', 'instance-1');
    ```
 
-3. List research instances:
+3. List instances:
    ```typescript
-   const instances = await tenantService.listResearchInstances('acme');
+   const instances = await tenantService.listInstances('acme');
    ```
 
 4. Check instance status:
    ```typescript
-   const status = await tenantService.getResearchInstance('acme', 'instance-1');
+   const status = await tenantService.getInstance('acme', 'instance-1');
    ```
 
 ## Kubernetes Operations
@@ -464,33 +501,33 @@ kubectl get namespaces
 
 **View deployments for a tenant:**
 ```bash
-kubectl get deployments -n research-tenant-acme
+kubectl get deployments -n tenant-acme
 ```
 
 **View services for a tenant:**
 ```bash
-kubectl get services -n research-tenant-acme
+kubectl get services -n tenant-acme
 ```
 
 **View pods for a tenant:**
 ```bash
-kubectl get pods -n research-tenant-acme
+kubectl get pods -n tenant-acme
 ```
 
 **View pod logs:**
 ```bash
-kubectl logs -n research-tenant-acme deployment/research-instance-instance-1
+kubectl logs -n tenant-acme deployment/instance-instance-1
 ```
 
-**Delete a research instance:**
+**Delete an instance:**
 ```bash
-kubectl delete deployment research-instance-instance-1 -n research-tenant-acme
-kubectl delete service research-instance-instance-1 -n research-tenant-acme
+kubectl delete deployment instance-instance-1 -n tenant-acme
+kubectl delete service instance-instance-1 -n tenant-acme
 ```
 
 **Delete a tenant namespace:**
 ```bash
-kubectl delete namespace research-tenant-acme
+kubectl delete namespace tenant-acme
 ```
 
 ## Cleanup
@@ -557,9 +594,9 @@ pnpm update
 ## Development Notes
 
 - The application uses the Kubernetes client library to interact with the cluster
-- Each tenant gets its own namespace: `research-tenant-{tenantId}`
-- Research instances are deployed as Kubernetes deployments with associated services
-- The default research instance uses `nginx:alpine` as a placeholder image
+- Each tenant gets its own namespace: `tenant-{tenantId}`
+- Instances are deployed as Kubernetes deployments with associated services
+- Instances run the tenant application Docker image (`tenant-app:latest`)
 - All code must pass strict TypeScript, ESLint, and Prettier checks
 - Secret scanning is performed on every check to prevent credential leaks
 
