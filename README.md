@@ -361,6 +361,37 @@ pnpm build
 pnpm start
 ```
 
+### E2E Testing
+
+End-to-end tests for the API running in Kubernetes are available using Vitest.
+
+**Prerequisites:**
+- The API must be running in Kubernetes (deployed via `./demo.sh` or manually)
+- The API should be accessible at `http://api.localhost:8080` (or set `API_BASE_URL` environment variable)
+
+**Run E2E tests:**
+```bash
+pnpm test:e2e
+```
+
+**Run E2E tests in watch mode:**
+```bash
+pnpm test:e2e:watch
+```
+
+**Set custom API URL:**
+```bash
+API_BASE_URL=http://localhost:3000 pnpm test:e2e
+```
+
+The tests cover:
+- Health endpoint
+- Tenant CRUD operations (create, list, get)
+- Forbidden tenant name validation
+- Error handling (404, 400)
+
+**Note:** E2E tests are not included in `check.sh` - they require a running Kubernetes cluster with the API deployed.
+
 ### Code Quality Scripts
 
 #### Format Code
