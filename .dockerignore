@@ -5,7 +5,6 @@ dist
 .eslintrc.json
 eslint.config.js
 .prettierrc.json
-tsconfig.json
 *.md
 *.sh
 app/
