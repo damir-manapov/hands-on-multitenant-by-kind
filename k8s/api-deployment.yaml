@@ -92,15 +92,13 @@ metadata:
   namespace: default
   labels:
     app: multitenant-api
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
   rules:
     - host: api.localhost
       http:
         paths:
-          - path: /
+          - path: /api
             pathType: Prefix
             backend:
               service:
