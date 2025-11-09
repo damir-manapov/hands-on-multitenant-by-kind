@@ -1,0 +1,41 @@
+{
+  "name": "hands-on-multitenant-by-kind",
+  "version": "1.0.0",
+  "description": "Multitenant research spinning app with kind for local development",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write \"src/**/*.{ts,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,json,md}\"",
+    "type-check": "tsc --noEmit",
+    "check": "./check.sh",
+    "health": "./health.sh"
+  },
+  "keywords": [
+    "multitenant",
+    "kubernetes",
+    "kind",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.0",
+    "prettier": "^3.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^0.21.0"
+  }
+}
+

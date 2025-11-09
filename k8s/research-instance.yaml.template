@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: research-instance-{{TENANT_ID}}
+  namespace: research-tenant-{{TENANT_ID}}
+  labels:
+    app: research-instance
+    tenant: {{TENANT_ID}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: research-instance
+      tenant: {{TENANT_ID}}
+  template:
+    metadata:
+      labels:
+        app: research-instance
+        tenant: {{TENANT_ID}}
+    spec:
+      containers:
+      - name: research-container
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        env:
+        - name: TENANT_ID
+          value: "{{TENANT_ID}}"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: research-instance-{{TENANT_ID}}
+  namespace: research-tenant-{{TENANT_ID}}
+  labels:
+    app: research-instance
+    tenant: {{TENANT_ID}}
+spec:
+  selector:
+    app: research-instance
+    tenant: {{TENANT_ID}}
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP
+
