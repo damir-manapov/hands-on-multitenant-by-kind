@@ -248,6 +248,35 @@ kubectl get nodes
 
 ## Development
 
+### Testing Tenant App Locally
+
+To test the tenant app locally before deploying to Kubernetes:
+
+```bash
+cd app
+pnpm install
+pnpm run build
+TENANT_ID=acme INSTANCE_ID=instance-1 pnpm start
+```
+
+**Note:** If port 9090 is already in use, specify a different port:
+```bash
+PORT=9091 TENANT_ID=acme INSTANCE_ID=instance-1 pnpm start
+```
+
+The app will start on `http://localhost:9090` (or the port specified by `PORT`). You can test it:
+
+```bash
+# Check the root endpoint
+curl http://localhost:9090/
+
+# Check health endpoint
+curl http://localhost:9090/health
+
+# Check inspect endpoint
+curl http://localhost:9090/inspect
+```
+
 ### Run in Development Mode
 
 ```bash

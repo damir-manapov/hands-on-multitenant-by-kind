@@ -23,9 +23,9 @@ RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile --prod; else p
 
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 8080
+EXPOSE 9090
 
-ENV PORT=8080
+ENV PORT=9090
 
 CMD ["node", "dist/index.js"]
 
