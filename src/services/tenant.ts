@@ -1,4 +1,4 @@
-import { Tenant, TenantStatus, ResearchInstance, InstanceStatus } from '../types/tenant.js';
+import { Tenant, TenantStatus, Instance, InstanceStatus } from '../types/tenant.js';
 import { KubernetesService } from './kubernetes.js';
 
 export class TenantService {
@@ -11,7 +11,7 @@ export class TenantService {
   }
 
   async createTenant(id: string, name: string): Promise<Tenant> {
-    const namespace = `research-tenant-${id}`;
+    const namespace = `tenant-${id}`;
 
     // Create namespace in Kubernetes
     await this.kubernetesService.createNamespace(id);
@@ -38,7 +38,7 @@ export class TenantService {
     return Array.from(this.tenants.values());
   }
 
-  async createResearchInstance(tenantId: string, instanceId: string): Promise<ResearchInstance> {
+  async createInstance(tenantId: string, instanceId: string): Promise<Instance> {
     const tenant = this.getTenant(tenantId);
     if (!tenant) {
       throw new Error(`Tenant not found: ${tenantId}`);
@@ -48,12 +48,12 @@ export class TenantService {
       throw new Error(`Tenant is not active: ${tenantId}`);
     }
 
-    await this.kubernetesService.createResearchInstance(tenantId, instanceId);
+    await this.kubernetesService.createInstance(tenantId, instanceId);
 
-    const instance: ResearchInstance = {
+    const instance: Instance = {
       id: instanceId,
       tenantId,
-      name: `research-instance-${instanceId}`,
+      name: `instance-${instanceId}`,
       status: InstanceStatus.Creating,
       createdAt: new Date(),
       namespace: tenant.namespace,
@@ -62,27 +62,24 @@ export class TenantService {
     return instance;
   }
 
-  async getResearchInstance(
-    tenantId: string,
-    instanceId: string,
-  ): Promise<ResearchInstance | null> {
-    const status = await this.kubernetesService.getResearchInstanceStatus(tenantId, instanceId);
+  async getInstance(tenantId: string, instanceId: string): Promise<Instance | null> {
+    const status = await this.kubernetesService.getInstanceStatus(tenantId, instanceId);
 
     return {
       id: instanceId,
       tenantId,
-      name: `research-instance-${instanceId}`,
+      name: `instance-${instanceId}`,
       status,
       createdAt: new Date(), // In production, fetch from K8s metadata
-      namespace: `research-tenant-${tenantId}`,
+      namespace: `tenant-${tenantId}`,
     };
   }
 
-  async listResearchInstances(tenantId: string): Promise<ResearchInstance[]> {
-    return await this.kubernetesService.listResearchInstances(tenantId);
+  async listInstances(tenantId: string): Promise<Instance[]> {
+    return await this.kubernetesService.listInstances(tenantId);
   }
 
-  async deleteResearchInstance(tenantId: string, instanceId: string): Promise<void> {
-    await this.kubernetesService.deleteResearchInstance(tenantId, instanceId);
+  async deleteInstance(tenantId: string, instanceId: string): Promise<void> {
+    await this.kubernetesService.deleteInstance(tenantId, instanceId);
   }
 }

@@ -12,7 +12,7 @@ export enum TenantStatus {
   Suspended = 'suspended',
 }
 
-export interface ResearchInstance {
+export interface Instance {
   id: string;
   tenantId: string;
   name: string;

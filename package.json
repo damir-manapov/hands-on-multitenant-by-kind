@@ -4,10 +4,11 @@
   "description": "Multitenant research spinning app with kind for local development",
   "type": "module",
   "main": "dist/index.js",
-  "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "scripts": {
+    "dev": "tsx watch src/main.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write \"src/**/*.{ts,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,json,md}\"",
@@ -24,7 +25,12 @@
   "author": "Damir Manapov",
   "license": "MIT",
   "dependencies": {
-    "@kubernetes/client-node": "^1.4.0"
+    "@kubernetes/client-node": "^1.4.0",
+    "@nestjs/common": "^11.1.8",
+    "@nestjs/core": "^11.1.8",
+    "@nestjs/platform-express": "^11.1.8",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

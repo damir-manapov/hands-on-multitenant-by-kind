@@ -225,7 +225,7 @@ kubectl get nodes
 pnpm dev
 ```
 
-This starts the application with hot-reload using `tsx watch`.
+This starts the NestJS REST API server with hot-reload using `tsx watch`. The API will be available at `http://localhost:3000/api`.
 
 ### Build the Project
 
@@ -307,7 +307,16 @@ This script checks the health of your dependencies:
 │   ├── services/
 │   │   ├── kubernetes.ts      # Kubernetes API integration
 │   │   └── tenant.ts          # Tenant management service
-│   └── index.ts               # Main entry point
+│   ├── tenants/
+│   │   ├── tenants.controller.ts  # REST API controller for tenants
+│   │   ├── tenants.service.ts     # NestJS service for tenants
+│   │   └── tenants.module.ts      # NestJS module for tenants
+│   ├── dto/
+│   │   ├── create-tenant.dto.ts           # DTO for creating tenants
+│   │   └── create-research-instance.dto.ts # DTO for creating instances
+│   ├── app.module.ts          # Main NestJS application module
+│   ├── main.ts                # NestJS application entry point
+│   └── index.ts               # Demo/example script
 ├── k8s/
 │   ├── namespace.yaml         # Example namespace definitions
 │   └── research-instance.yaml.template  # Template for research instances
@@ -352,6 +361,69 @@ Code formatting is enforced with:
 - Trailing commas
 - 100 character line width
 - 2 space indentation
+
+## REST API
+
+The application provides a REST API built with NestJS for managing tenants and research instances.
+
+### API Endpoints
+
+All endpoints are prefixed with `/api`.
+
+#### Tenants
+
+- **POST** `/api/tenants` - Create a new tenant
+  ```json
+  {
+    "id": "acme",
+    "name": "Acme Corporation"
+  }
+  ```
+
+- **GET** `/api/tenants` - List all tenants
+
+- **GET** `/api/tenants/:id` - Get a specific tenant by ID
+
+#### Research Instances
+
+- **POST** `/api/tenants/:id/research-instances` - Create a research instance for a tenant
+  ```json
+  {
+    "instanceId": "instance-1"
+  }
+  ```
+
+- **GET** `/api/tenants/:id/research-instances` - List all research instances for a tenant
+
+- **GET** `/api/tenants/:id/research-instances/:instanceId` - Get a specific research instance
+
+- **DELETE** `/api/tenants/:id/research-instances/:instanceId` - Delete a research instance
+
+### Example API Usage
+
+```bash
+# Create a tenant
+curl -X POST http://localhost:3000/api/tenants \
+  -H "Content-Type: application/json" \
+  -d '{"id": "acme", "name": "Acme Corporation"}'
+
+# List all tenants
+curl http://localhost:3000/api/tenants
+
+# Create a research instance
+curl -X POST http://localhost:3000/api/tenants/acme/research-instances \
+  -H "Content-Type: application/json" \
+  -d '{"instanceId": "instance-1"}'
+
+# List research instances for a tenant
+curl http://localhost:3000/api/tenants/acme/research-instances
+
+# Get a specific research instance
+curl http://localhost:3000/api/tenants/acme/research-instances/instance-1
+
+# Delete a research instance
+curl -X DELETE http://localhost:3000/api/tenants/acme/research-instances/instance-1
+```
 
 ## Usage
 
