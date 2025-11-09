@@ -9,26 +9,12 @@ echo "Starting Multitenant Demo"
 echo "=========================================="
 echo ""
 
-# Handle cluster reset (default behavior)
-if [ "$SKIP_RESET" = "--no-reset" ] || [ "$SKIP_RESET" = "-n" ]; then
-  if ! kind get clusters | grep -q "multitenant-research"; then
-    echo "Creating kind cluster..."
-    kind create cluster --config kind-config.yaml
-  else
-    echo "Kind cluster already exists"
-    echo "  (Use './demo.sh' without flags to reset the cluster)"
-  fi
-else
-  echo "Resetting kind cluster..."
-  if kind get clusters | grep -q "multitenant-research"; then
-    kind delete cluster --name multitenant-research
-    echo "Cluster deleted"
-  fi
-  echo "Creating new kind cluster..."
-  kind create cluster --config kind-config.yaml
-fi
+# Setup kind cluster (includes ingress controller)
+echo "Setting up kind cluster..."
+./setup-kind.sh "$SKIP_RESET"
 
 # Build and load tenant app image
+echo ""
 echo "Building tenant app image..."
 ./build-app.sh
 
@@ -103,45 +89,59 @@ echo ""
 echo "API Server: http://localhost:3000/api"
 echo ""
 
-# Set up port forwarding in background
-echo "Setting up port forwarding for tenant apps..."
-kubectl port-forward -n tenant-acme service/acme 9090:9090 > /tmp/port-forward-acme.log 2>&1 &
-PF_ACME_PID=$!
-kubectl port-forward -n tenant-globex service/globex 9091:9090 > /tmp/port-forward-globex.log 2>&1 &
-PF_GLOBEX_PID=$!
+# Wait a moment for ingress to be ready
+echo "Waiting for ingress to be ready..."
+sleep 5
 
-# Wait a moment for port forwarding to start
-sleep 2
+echo ""
+echo "Checking /etc/hosts configuration..."
 
-# Test if port forwarding is working
-if curl -s http://localhost:9090/ > /dev/null 2>&1; then
-  echo "✅ Port forwarding is active!"
-  echo ""
-  echo "You can now access:"
-  echo "  - Acme tenant: http://localhost:9090/"
-  echo "  - Globex tenant: http://localhost:9091/"
-  echo ""
-  echo "Test with curl:"
-  echo "  curl http://localhost:9090/"
-  echo "  curl http://localhost:9091/"
-else
-  echo "⚠️  Port forwarding started but may need a moment to be ready"
-  echo "   If curl still fails, wait a few seconds and try again"
-  echo ""
-  echo "Port forwarding PIDs:"
-  echo "  - Acme (port 9090): $PF_ACME_PID"
-  echo "  - Globex (port 9091): $PF_GLOBEX_PID"
+# Check if /etc/hosts has the required entries
+HOSTS_OK=true
+if ! grep -q "127.0.0.1.*acme.localhost" /etc/hosts 2>/dev/null; then
+  echo "  ⚠️  Missing: acme.localhost"
+  HOSTS_OK=false
 fi
 
+if ! grep -q "127.0.0.1.*globex.localhost" /etc/hosts 2>/dev/null; then
+  echo "  ⚠️  Missing: globex.localhost"
+  HOSTS_OK=false
+fi
+
+if [ "$HOSTS_OK" = true ]; then
+  echo "  ✅ /etc/hosts is configured correctly"
+else
+  echo ""
+  echo "  ❌ /etc/hosts is missing required entries"
+  echo ""
+  echo "  Please add the following to /etc/hosts:"
+  echo "    127.0.0.1 acme.localhost"
+  echo "    127.0.0.1 globex.localhost"
+  echo ""
+  echo "  You can do this with:"
+  echo "    sudo bash -c 'echo \"127.0.0.1 acme.localhost\" >> /etc/hosts'"
+  echo "    sudo bash -c 'echo \"127.0.0.1 globex.localhost\" >> /etc/hosts'"
+  echo ""
+  echo "  Or edit /etc/hosts manually and add the entries above."
+fi
+
+echo ""
+echo "✅ Tenants are accessible via subdomains:"
+echo ""
+echo "  - Acme tenant: http://acme.localhost:8080/"
+echo "  - Globex tenant: http://globex.localhost:8080/"
+echo ""
+echo "Test with curl:"
+echo "  curl http://acme.localhost:8080/"
+echo "  curl http://globex.localhost:8080/"
 echo ""
 echo "API endpoints:"
 echo "  - List tenants: curl http://localhost:3000/api/tenants"
 echo "  - Get tenant: curl http://localhost:3000/api/tenants/acme"
 echo ""
-echo "To stop services:"
-echo "  - API server: kill $API_PID"
-echo "  - Port forwarding: kill $PF_ACME_PID $PF_GLOBEX_PID"
+echo "To stop API server:"
+echo "  kill $API_PID"
 echo ""
-echo "Or stop all: pkill -f 'node dist/main.js|kubectl port-forward'"
+echo "Or stop all: pkill -f 'node dist/main.js'"
 
 

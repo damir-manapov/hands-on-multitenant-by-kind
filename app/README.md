@@ -6,12 +6,12 @@ Simple TypeScript application that runs as a tenant instance.
 
 - Express.js HTTP server
 - Health check endpoint
-- Tenant and instance ID display
+- Tenant ID display
 - Dockerized for easy deployment
 
 ## Endpoints
 
-- `GET /` - Returns tenant and instance information
+- `GET /` - Returns tenant information
 - `GET /health` - Health check endpoint (returns status and uptime)
 - `GET /inspect` - Inspection endpoint (returns detailed app information including memory usage, environment, etc.)
 
@@ -33,7 +33,6 @@ Or run the script directly:
 
 - `PORT` - Server port (default: 9090)
 - `TENANT_ID` - Tenant identifier
-- `INSTANCE_ID` - Instance identifier
 
 ## Installation
 
@@ -66,12 +65,12 @@ pnpm start
 
 Or set environment variables and run:
 ```bash
-TENANT_ID=acme INSTANCE_ID=instance-1 pnpm start
+TENANT_ID=acme pnpm start
 ```
 
 **Note:** If port 9090 is already in use, you can specify a different port:
 ```bash
-PORT=9091 TENANT_ID=acme INSTANCE_ID=instance-1 pnpm start
+PORT=9091 TENANT_ID=acme pnpm start
 ```
 
 The app will start on `http://localhost:9090` (or the port specified by `PORT` environment variable).
@@ -95,5 +94,4 @@ curl http://localhost:9090/inspect
 
 - `PORT` - Server port (default: 9090)
 - `TENANT_ID` - Tenant identifier (default: 'unknown')
-- `INSTANCE_ID` - Instance identifier (default: 'unknown')
 

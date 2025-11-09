@@ -18,6 +18,7 @@ function isKubernetesError(error: unknown): error is KubernetesError {
 export class KubernetesService {
   private k8sApi: k8s.AppsV1Api;
   private coreApi: k8s.CoreV1Api;
+  private networkingApi: k8s.NetworkingV1Api;
   private kc: k8s.KubeConfig;
 
   constructor() {
@@ -25,6 +26,7 @@ export class KubernetesService {
     this.kc.loadFromDefault();
     this.k8sApi = this.kc.makeApiClient(k8s.AppsV1Api);
     this.coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+    this.networkingApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
   }
 
   async createNamespace(tenantId: string): Promise<void> {
@@ -137,9 +139,66 @@ export class KubernetesService {
 
       await this.coreApi.createNamespacedService({ namespace, body: service });
       console.log(`Service created: ${tenantId} in ${namespace}`);
+
+      // Create ingress for subdomain routing
+      await this.createIngress(tenantId);
     } catch (error: unknown) {
       if (isKubernetesError(error) && (error.statusCode === 409 || error.code === 409)) {
         console.log(`Deployment already exists for tenant: ${tenantId}`);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  async createIngress(tenantId: string): Promise<void> {
+    const namespace = `tenant-${tenantId}`;
+    const host = `${tenantId}.localhost`;
+
+    const ingress: k8s.V1Ingress = {
+      metadata: {
+        name: tenantId,
+        namespace,
+        labels: {
+          app: 'tenant-app',
+          tenant: tenantId,
+        },
+        annotations: {
+          'nginx.ingress.kubernetes.io/rewrite-target': '/',
+        },
+      },
+      spec: {
+        ingressClassName: 'nginx',
+        rules: [
+          {
+            host,
+            http: {
+              paths: [
+                {
+                  path: '/',
+                  pathType: 'Prefix',
+                  backend: {
+                    service: {
+                      name: tenantId,
+                      port: {
+                        number: 9090,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    try {
+      await this.networkingApi.createNamespacedIngress({ namespace, body: ingress });
+      console.log(`Ingress created: ${host} -> ${tenantId} in ${namespace}`);
+    } catch (error: unknown) {
+      if (isKubernetesError(error) && (error.statusCode === 409 || error.code === 409)) {
+        console.log(`Ingress already exists for tenant: ${tenantId}`);
       } else {
         throw error;
       }

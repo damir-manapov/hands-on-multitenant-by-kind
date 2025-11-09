@@ -193,29 +193,34 @@ This will install all project dependencies including:
 - Kubernetes client library
 - Development tools (tsx, etc.)
 
-### 3. Create kind Cluster
+### 3. Setup kind Cluster
+
+Use the setup script to create the kind cluster and install the nginx-ingress controller:
 
 ```bash
-kind create cluster --config kind-config.yaml
+./setup-kind.sh
 ```
 
 This creates a Kubernetes cluster with:
 - 1 control-plane node
 - 2 worker nodes
 - Port mappings for ingress (80→8080, 443→8443)
+- Ingress-ready node labels
+- nginx-ingress controller installed and ready
 
 **To reset the cluster** (delete and recreate):
 
 ```bash
-kind delete cluster --name multitenant-research
-kind create cluster --config kind-config.yaml
+./setup-kind.sh
 ```
 
-Or use the demo script (resets by default):
+**To skip reset and use existing cluster** (if it exists):
 
 ```bash
-./demo.sh
+./setup-kind.sh --no-reset
 ```
+
+**Note:** The demo script (`./demo.sh`) automatically runs `./setup-kind.sh` to ensure the cluster is set up.
 
 ### 4. Install Tenant App Dependencies
 
@@ -415,6 +420,7 @@ This script checks the health of your dependencies:
 │   │   └── index.ts           # Simple Express.js app
 │   ├── Dockerfile             # Docker image for tenant app
 │   └── package.json           # App dependencies
+├── setup-kind.sh              # Setup kind cluster with ingress
 ├── build-app.sh               # Build and load tenant app script
 ├── demo.sh                    # Quick start demo script
 ├── port-forward.sh            # Helper script for port forwarding
@@ -522,13 +528,28 @@ curl http://localhost:3000/api/tenants
 curl http://localhost:3000/api/tenants/acme/instance
 ```
 
-### Accessing Tenant Apps in Browser
+### Accessing Tenant Apps via Subdomains
 
-**⚠️ IMPORTANT:** The tenant apps run inside Kubernetes. You **MUST** set up port forwarding **BEFORE** you can access `http://localhost:9090/`. Without port forwarding, curl will fail with "Connection refused".
+Tenants are accessible via subdomains using Kubernetes Ingress. Each tenant gets its own subdomain automatically.
 
-**Step 1: Wait for pods to be ready**
+**Step 1: Configure /etc/hosts**
 
-First, make sure the pods are running:
+Add the tenant subdomains to your `/etc/hosts` file:
+
+```bash
+sudo bash -c 'echo "127.0.0.1 acme.localhost" >> /etc/hosts'
+sudo bash -c 'echo "127.0.0.1 globex.localhost" >> /etc/hosts'
+```
+
+Or edit `/etc/hosts` manually and add:
+```
+127.0.0.1 acme.localhost
+127.0.0.1 globex.localhost
+```
+
+**Step 2: Wait for pods and ingress to be ready**
+
+Make sure the pods are running:
 
 ```bash
 kubectl get pods -n tenant-acme
@@ -537,60 +558,40 @@ kubectl get pods -n tenant-globex
 
 Wait until the pods show `STATUS: Running` and `READY: 1/1`.
 
-**Step 2: Set up port forwarding**
-
-You have two options:
-
-**Option A: Use the helper script** (recommended):
+Check ingress status:
 
 ```bash
-# For tenant acme (in one terminal)
-./port-forward.sh acme
-
-# For tenant globex (in another terminal)
-./port-forward.sh globex
+kubectl get ingress -A
 ```
 
-**Option B: Use kubectl directly**:
+**Step 3: Access the apps**
 
-**For tenant acme** (in one terminal):
-```bash
-kubectl port-forward -n tenant-acme service/acme 9090:9090
-```
+Once everything is ready, you can access tenants via subdomains:
 
-**For tenant globex** (in another terminal):
-```bash
-kubectl port-forward -n tenant-globex service/globex 9091:9090
-```
+- **Acme tenant:**
+  - Root: http://acme.localhost:8080/
+  - Health: http://acme.localhost:8080/health
+  - Inspect: http://acme.localhost:8080/inspect
 
-**Step 3: Test the connection**
+- **Globex tenant:**
+  - Root: http://globex.localhost:8080/
+  - Health: http://globex.localhost:8080/health
+  - Inspect: http://globex.localhost:8080/inspect
 
-**In a new terminal** (keep port forwarding running), test with curl:
+**Test with curl:**
 
 ```bash
 # Test acme tenant
-curl http://localhost:9090/
+curl http://acme.localhost:8080/
 
 # Test globex tenant
-curl http://localhost:9091/
+curl http://globex.localhost:8080/
 ```
 
-**Step 4: Access the apps**
-
-Once port forwarding is active, you can access:
-- **Acme tenant:**
-  - Root: http://localhost:9090/
-  - Health: http://localhost:9090/health
-  - Inspect: http://localhost:9090/inspect
-
-- **Globex tenant:**
-  - Root: http://localhost:9091/
-  - Health: http://localhost:9091/health
-  - Inspect: http://localhost:9091/inspect
-
 **Note:** 
-- Keep the port forwarding terminal(s) open. If you close them, the connection will be lost.
-- Port forwarding must be running **before** you can use curl or open the URL in a browser.
+- The ingress controller listens on port 8080 (mapped from port 80 in the kind cluster)
+- Each tenant automatically gets an Ingress resource created when the tenant is created
+- The subdomain format is `{tenant-id}.localhost`
 
 ## Usage
 
@@ -642,21 +643,16 @@ kubectl logs -n tenant-acme deployment/acme
 **Reset the kind cluster** (delete and recreate):
 
 ```bash
-kind delete cluster --name multitenant-research
-kind create cluster --config kind-config.yaml
-```
-
-Or use the demo script (resets by default):
-
-```bash
-./demo.sh
+./setup-kind.sh
 ```
 
 To skip reset and use existing cluster:
 
 ```bash
-./demo.sh --no-reset
+./setup-kind.sh --no-reset
 ```
+
+**Note:** The demo script (`./demo.sh`) automatically runs `./setup-kind.sh` to ensure the cluster is set up.
 
 **Delete a tenant's instance** (each tenant has one instance automatically):
 ```bash
