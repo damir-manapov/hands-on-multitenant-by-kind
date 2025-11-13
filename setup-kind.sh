@@ -200,6 +200,35 @@ done
 echo "Waiting for ingress controller to fully initialize..."
 sleep 5
 
+# Patch ingress controller to run on control-plane node (which has port mapping)
+echo ""
+echo "Configuring ingress controller to run on control-plane node..."
+kubectl patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/nodeSelector/ingress-ready", "value": "true"}]' || {
+  echo "Warning: Failed to patch ingress controller deployment"
+  echo "The ingress controller may not be accessible on port 8080"
+}
+
+# Wait for the patched controller to be ready
+echo "Waiting for ingress controller to restart on control-plane node..."
+for i in {1..60}; do
+  if kubectl wait --namespace ingress-nginx \
+    --for=condition=ready pod \
+    --selector=app.kubernetes.io/component=controller \
+    --timeout=5s > /dev/null 2>&1; then
+    # Verify it's on the control-plane node
+    CONTROLLER_NODE=$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/component=controller -o jsonpath='{.items[0].spec.nodeName}' 2>/dev/null || echo "")
+    if echo "$CONTROLLER_NODE" | grep -q "control-plane"; then
+      echo "Ingress controller is running on control-plane node"
+      break
+    fi
+  fi
+  if [ $i -eq 60 ]; then
+    echo "Warning: Ingress controller may not be on control-plane node"
+    echo "Current node: $(kubectl get pods -n ingress-nginx -l app.kubernetes.io/component=controller -o jsonpath='{.items[0].spec.nodeName}' 2>/dev/null || echo 'unknown')"
+  fi
+  sleep 2
+done
+
 echo ""
 echo "=========================================="
 echo "Kind cluster setup complete"
